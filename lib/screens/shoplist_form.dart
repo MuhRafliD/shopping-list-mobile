@@ -1,6 +1,11 @@
-import 'package:flutter/material.dart';
-import 'package:shopping_list/widgets/left_drawer.dart';
+import 'dart:convert';
 
+import 'package:flutter/material.dart';
+import 'package:pbp_django_auth/pbp_django_auth.dart';
+import 'package:provider/provider.dart';
+import 'package:shopping_list/screens/menu.dart';
+// TODO: Impor drawer yang sudah dibuat sebelumnya
+import 'package:shopping_list/widgets/left_drawer.dart';
 
 class ShopFormPage extends StatefulWidget {
     const ShopFormPage({super.key});
@@ -14,50 +19,51 @@ class _ShopFormPageState extends State<ShopFormPage> {
   String _name = "";
   int _price = 0;
   String _description = "";
-
   @override
   Widget build(BuildContext context) {
-      return Scaffold(
-        appBar: AppBar(
-          title: const Center(
-            child: Text(
-              'Form Tambah Produk',
-            ),
+    final request = context.watch<CookieRequest>();
+    return Scaffold(
+      appBar: AppBar(
+        title: const Center(
+          child: Text(
+            'Form Tambah Produk',
           ),
-          backgroundColor: Colors.indigo,
-          foregroundColor: Colors.white,
         ),
-        drawer: const LeftDrawer(),
-        body: Form(
-          key: _formKey,
-          child: SingleChildScrollView(
-            child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: TextFormField(
-            decoration: InputDecoration(
-              hintText: "Nama Produk",
-              labelText: "Nama Produk",
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(5.0),
+        backgroundColor: Colors.indigo,
+        foregroundColor: Colors.white,
+      ),
+      // TODO: Tambahkan drawer yang sudah dibuat di sini
+      drawer: const LeftDrawer(),
+      body: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: TextFormField(
+                decoration: InputDecoration(
+                  hintText: "Nama Produk",
+                  labelText: "Nama Produk",
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(5.0),
+                  ),
+                ),
+                onChanged: (String? value) {
+                  setState(() {
+                    _name = value!;
+                  });
+                },
+                validator: (String? value) {
+                  if (value == null || value.isEmpty) {
+                    return "Nama tidak boleh kosong!";
+                  }
+                  return null;
+                },
               ),
             ),
-            onChanged: (String? value) {
-              setState(() {
-                _name = value!;
-              });
-            },
-            validator: (String? value) {
-              if (value == null || value.isEmpty) {
-                return "Nama tidak boleh kosong!";
-              }
-              return null;
-            },
-          ),
-        ),
-        Padding(
+            Padding(
               padding: const EdgeInsets.all(8.0),
               child: TextFormField(
                 decoration: InputDecoration(
@@ -67,6 +73,7 @@ class _ShopFormPageState extends State<ShopFormPage> {
                     borderRadius: BorderRadius.circular(5.0),
                   ),
                 ),
+                // TODO: Tambahkan variabel yang sesuai
                 onChanged: (String? value) {
                   setState(() {
                     _price = int.parse(value!);
@@ -95,6 +102,7 @@ class _ShopFormPageState extends State<ShopFormPage> {
                 ),
                 onChanged: (String? value) {
                   setState(() {
+                    // TODO: Tambahkan variabel yang sesuai
                     _description = value!;
                   });
                 },
@@ -111,52 +119,51 @@ class _ShopFormPageState extends State<ShopFormPage> {
               child: Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: ElevatedButton(
-                    style: ButtonStyle(
-                      backgroundColor:
-                          MaterialStateProperty.all(Colors.indigo),
-                    ),
-                    onPressed: () {
-                      if (_formKey.currentState!.validate()) {
-                        showDialog(
-                          context: context,
-                          builder: (context) {
-                            return AlertDialog(
-                              title: const Text('Produk berhasil tersimpan'),
-                              content: SingleChildScrollView(
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
-                                  children: [
-                                    Text('Nama: $_name'),
-                                    Text('Harga: $_price'),
-                                    Text('Deskripsi: $_description'),
-                                  ],
-                                ),
-                              ),
-                              actions: [
-                                TextButton(
-                                  child: const Text('OK'),
-                                  onPressed: () {
-                                    Navigator.pop(context);
-                                  },
-                                ),
-                              ],
-                            );
-                          },
-                        );
-                      }
-                      _formKey.currentState!.reset();
-                    },
-                    child: const Text(
-                      "Save",
-                      style: TextStyle(color: Colors.white),
-                    ),
+                  style: ButtonStyle(
+                    backgroundColor:
+                        MaterialStateProperty.all(Colors.indigo),
                   ),
+                  onPressed: () async {
+                    if (_formKey.currentState!.validate()) {
+                        // Kirim ke Django dan tunggu respons
+                        // TODO: Ganti URL dan jangan lupa tambahkan trailing slash (/) di akhir URL!
+                        final response = await request.postJson(
+                        "http://localhost:8000/create-flutter/",
+                        jsonEncode(<String, String>{
+                            'name': _name,
+                            'price': _price.toString(),
+                            'description': _description,
+                            // TODO: Sesuaikan field data sesuai dengan aplikasimu
+                        }));
+                        if (response['status'] == 'success') {
+                            ScaffoldMessenger.of(context)
+                                .showSnackBar(const SnackBar(
+                            content: Text("Produk baru berhasil disimpan!"),
+                            ));
+                            Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(builder: (context) => MyHomePage()),
+                            );
+                        } else {
+                            ScaffoldMessenger.of(context)
+                                .showSnackBar(const SnackBar(
+                                content:
+                                    Text("Terdapat kesalahan, silakan coba lagi."),
+                            ));
+                        }
+                    }
+                  },
+                  child: const Text(
+                    "Save",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
               ),
             ),
-          ]),
+          ],
+          ),
         ),
-      )
-      );
+      ),
+    );
   }
 }
